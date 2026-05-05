@@ -1,0 +1,29 @@
+diff --git a/src/main/scala/rocket/Configs.scala b/src/main/scala/rocket/Configs.scala
+index a653e361e..b87ff4bf3 100644
+--- a/src/main/scala/rocket/Configs.scala
++++ b/src/main/scala/rocket/Configs.scala
+@@ -222,6 +222,8 @@ class RocketDCacheConfig(f: DCacheParams => DCacheParams) extends RocketTileConf
+   dcache = tp.dcache.map(dc => f(dc))
+ ))
+ 
++class WithSupervisorEnabled                            extends RocketCoreConfig(_.copy(useSupervisor = true))
++
+ class WithL1ICacheSets(sets: Int)                      extends RocketICacheConfig(_.copy(nSets=sets))
+ class WithL1ICacheWays(ways: Int)                      extends RocketICacheConfig(_.copy(nWays=ways))
+ class WithL1ICacheECC(dataECC: String, tagECC: String) extends RocketICacheConfig(_.copy(dataECC = Some(dataECC), tagECC = Some(tagECC)))
+diff --git a/src/main/scala/tile/Core.scala b/src/main/scala/tile/Core.scala
+index 1160247e7..4330fd6f3 100644
+--- a/src/main/scala/tile/Core.scala
++++ b/src/main/scala/tile/Core.scala
+@@ -147,6 +147,11 @@ trait HasCoreParameters extends HasTileParameters {
+ 
+   // Print out log of committed instructions and their writeback values.
+   // Requires post-processing due to out-of-order writebacks.
++
++  // Enable here, it is hard to make an option out of this.
++  // you can also use override val in:
++  // ./chipyard/generators/rocket-chip/src/main/scala/rocket/RocketCore.scala:86
++  // val enableCommitLog = true
+   val enableCommitLog = false
+ 
+ }

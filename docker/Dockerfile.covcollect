@@ -1,0 +1,51 @@
+FROM base:v1
+
+ARG WORKDIR
+ARG HARTATTACK_CORES
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install Verilator
+RUN git clone https://github.com/verilator/verilator \
+&& cd verilator \
+&& git checkout v5.034 \
+&& autoconf \
+&& ./configure \
+&& make -j ${HARTATTACK_CORES} \
+&& make install
+
+# Install stack (sv2v dep)
+RUN curl -sSL https://get.haskellstack.org/ | sh
+
+# Install sv2v & add it to the path
+RUN git clone https://github.com/zachjs/sv2v.git \
+&& cd sv2v \
+&& make -j 200
+
+ENV PATH="${PATH}:/sv2v/bin/"
+
+# Build milesan-yosys at the pinned commit used in the paper.
+RUN git clone https://github.com/milesan-artifacts/milesan-yosys.git /opt/milesan-yosys \
+&& cd /opt/milesan-yosys \
+&& git checkout 67fe6db9b38875c3d567db7592727faae81c4dcb \
+&& make -j ${HARTATTACK_CORES}
+ENV MILESAN_YOSYS="/opt/milesan-yosys/yosys"
+
+# Clone riscv-dv at the pinned commit. dv.patch is applied at run time by
+# run_riscvdv.sh so the patch lives in one place (coverage_comparaison/).
+RUN git clone https://github.com/chipsalliance/riscv-dv.git /opt/riscv-dv \
+&& cd /opt/riscv-dv \
+&& git checkout 7e54b678ab7499040336255550cdbd99ae887431
+ENV RISCV_DV_DIR="/opt/riscv-dv"
+
+# change user and get zsh for dev
+RUN rm -rf /var/lib/apt/lists/*
+USER attacker
+RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" \
+&& git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions \
+&& git clone https://github.com/zsh-users/zsh-syntax-highlighting ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting \
+&& sed -i 's/plugins=(git)/plugins=(git zsh-autosuggestions zsh-syntax-highlighting)/' ~/.zshrc
+
+ENV LD_LIBRARY_PATH="/opt/riscv/lib/:${LD_LIBRARY_PATH}"
+
+WORKDIR ${WORKDIR}/coverage_comparaison

@@ -1,12 +1,24 @@
 # HartBreaker -- Artifact Evaluation
 
+## Prerequisites
+
+All build and reproduction steps run inside Docker. The `chipyard`, `covcollect`, `toooba`, `xs`, and `run` images all derive from a shared `base:v1` image, so build that first:
+
+```bash
+./scripts/build_docker.sh base
+```
+
+Subsequent build scripts (`build_chipyard.sh`, `build_toooba.sh`, `build_xs.sh`) and the experiment scripts assume `base:v1` exists. If you only want Figure 14, you also need the `covcollect:v1` image:
+
+```bash
+./scripts/build_docker.sh covcollect
+```
+
+The `covcollect` image bakes in pinned clones of [milesan-yosys](https://github.com/milesan-artifacts/milesan-yosys) and [riscv-dv](https://github.com/chipsalliance/riscv-dv) -- you do **not** need to clone or build them on the host.
+
 ## Simulators
 
-Pre-built simulator binaries are included in `simulators/` and are ready to use. Each subdirectory contains the simulator executable and a `cfg.json` describing the design parameters.
-
-### Re-building simulators from source
-
-If you want to rebuild the simulators from source, each build script compiles the design inside a Docker container and extracts the binaries to `simulators/`.
+Simulator binaries are not committed to the repository. Each build script compiles a design inside its Docker container and extracts the binary plus a generated `cfg.json` (describing the design parameters) into `simulators/<design>/`.
 
 ```bash
 # Chipyard designs (Rocket, BOOM)
@@ -117,7 +129,7 @@ The experiment has four phases:
 3. **Collect coverage** -- Runs both the HartBreaker corpus and the pre-built RISCV-DV corpus through the instrumented simulator.
 4. **Plot** -- Generates the coverage evolution plot.
 
-Pre-built RISCV-DV test binaries are included in `artifact_reproduction/data/riscvdv_corpus/`. See its [README](artifact_reproduction/data/riscvdv_corpus/README.md) for details.
+The pre-built RISCV-DV test binaries are distributed separately as a tarball (~14 GB) on Zenodo, not in this repository. Download `riscvdv-out.tar.gz` from the Zenodo record into `artifact_reproduction/data/riscvdv_corpus/` before running Figure 14. See its [README](artifact_reproduction/data/riscvdv_corpus/README.md) for details.
 
 Use `--quick` to test the pipeline with shorter generation timeouts (60s per scenario instead of ~6h):
 
@@ -175,7 +187,7 @@ All generated figures are saved to `figures/`. Intermediate benchmark data is st
 | Directory | Description |
 |-----------|-------------|
 | `hartattack/` | Fuzzing framework (program generation, simulation, verification) |
-| `simulators/` | Pre-built simulator binaries and configurations |
+| `simulators/` | Per-design output directory; populated by the build scripts (binary + `cfg.json`) |
 | `artifact_reproduction/` | Scripts to reproduce each figure |
 | `figures/` | Generated output figures (PDF) |
 | `docker/` | Dockerfiles for building simulator and run images |

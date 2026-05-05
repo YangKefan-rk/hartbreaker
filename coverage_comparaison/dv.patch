@@ -1,0 +1,137 @@
+diff --git a/run.py b/run.py
+index 4097c9f..113e31f 100644
+--- a/run.py
++++ b/run.py
+@@ -959,8 +959,8 @@ def load_config(args, cwd):
+             args.mabi = "ilp32"
+             args.isa = "rv32imc_zicsr_zifencei"
+         elif args.target == "multi_harts":
+-            args.mabi = "ilp32"
+-            args.isa = "rv32gc_zicsr_zifencei"
++            args.mabi = "lp64"
++            args.isa = "rv64gc_zicsr_zifencei"
+         elif args.target == "rv32imcb":
+             args.mabi = "ilp32"
+             args.isa = "rv32imcb_zicsr_zifencei"
+diff --git a/target/multi_harts/riscv_core_setting.sv b/target/multi_harts/riscv_core_setting.sv
+index 95b2433..bac736a 100644
+--- a/target/multi_harts/riscv_core_setting.sv
++++ b/target/multi_harts/riscv_core_setting.sv
+@@ -18,7 +18,7 @@
+ // Processor feature configuration
+ //-----------------------------------------------------------------------------
+ // XLEN
+-parameter int XLEN = 32;
++parameter int XLEN = 64;
+ 
+ // Parameter for SATP mode, set to BARE if address translation is not supported
+ parameter satp_mode_t SATP_MODE = BARE;
+@@ -30,7 +30,7 @@ privileged_mode_t supported_privileged_mode[] = {MACHINE_MODE};
+ riscv_instr_name_t unsupported_instr[];
+ 
+ // ISA supported by the processor
+-riscv_instr_group_t supported_isa[$] = {RV32I, RV32M, RV32C, RV32A};
++riscv_instr_group_t supported_isa[$] = {RV32I, RV32M, RV32C, RV32A, RV64I, RV64M, RV64C, RV64A};
+ 
+ // Interrupt mode support
+ mtvec_mode_t supported_interrupt_mode[$] = {DIRECT, VECTORED};
+@@ -55,7 +55,7 @@ bit support_umode_trap = 0;
+ bit support_sfence = 0;
+ 
+ // Support unaligned load/store
+-bit support_unaligned_load_store = 1'b1;
++bit support_unaligned_load_store = 1'b0;
+ 
+ // GPR setting
+ parameter int NUM_FLOAT_GPR = 32;
+diff --git a/target/multi_harts/testlist.yaml b/target/multi_harts/testlist.yaml
+index 3bdfdcc..0f241d7 100644
+--- a/target/multi_harts/testlist.yaml
++++ b/target/multi_harts/testlist.yaml
+@@ -88,4 +88,3 @@
+     +instr_cnt=6000
+     +num_of_harts=1
+   rtl_test: core_base_test
+-
+diff --git a/target/rv64gc/riscv_core_setting.sv b/target/rv64gc/riscv_core_setting.sv
+index 376b90f..01ae9b2 100644
+--- a/target/rv64gc/riscv_core_setting.sv
++++ b/target/rv64gc/riscv_core_setting.sv
+@@ -21,7 +21,7 @@
+ parameter int XLEN = 64;
+ 
+ // Parameter for SATP mode, set to BARE if address translation is not supported
+-parameter satp_mode_t SATP_MODE = SV39;
++parameter satp_mode_t SATP_MODE = BARE;
+ 
+ // Supported Privileged mode
+ privileged_mode_t supported_privileged_mode[] = {USER_MODE, SUPERVISOR_MODE, MACHINE_MODE};
+@@ -30,10 +30,9 @@ privileged_mode_t supported_privileged_mode[] = {USER_MODE, SUPERVISOR_MODE, MAC
+ riscv_instr_name_t unsupported_instr[];
+ 
+ // ISA supported by the processor
+-riscv_instr_group_t supported_isa[$] = {RV32I, RV32M, RV64I, RV64M, RV32C, RV64C, RV32A, RV64A,
+-                                        RV32F, RV64F, RV32D, RV64D, RV32X};
++riscv_instr_group_t supported_isa[$] = {RV64I, RV64M, RV64C, RV64A};
+ // Interrupt mode support
+-mtvec_mode_t supported_interrupt_mode[$] = {DIRECT, VECTORED};
++mtvec_mode_t supported_interrupt_mode[$] = {DIRECT};
+ 
+ // The number of interrupt vectors to be generated, only used if VECTORED interrupt mode is
+ // supported
+@@ -55,7 +54,7 @@ bit support_umode_trap = 0;
+ bit support_sfence = 1;
+ 
+ // Support unaligned load/store
+-bit support_unaligned_load_store = 1'b1;
++bit support_unaligned_load_store = 1'b0;
+ 
+ // GPR setting
+ parameter int NUM_FLOAT_GPR = 32;
+@@ -100,20 +99,11 @@ privileged_reg_t implemented_csr[] = {
+ `else
+ const privileged_reg_t implemented_csr[] = {
+ `endif
+-    // User mode CSR
+-    USTATUS,    // User status
+-    UIE,        // User interrupt-enable register
+-    UTVEC,      // User trap-handler base address
+-    USCRATCH,   // Scratch register for user trap handlers
+-    UEPC,       // User exception program counter
+-    UCAUSE,     // User trap cause
+-    UTVAL,      // User bad address or instruction
+-    UIP,        // User interrupt pending
+     // Supervisor mode CSR
+-    SSTATUS,    // Supervisor status
+-    SEDELEG,    // Supervisor exception delegation register
+-    SIDELEG,    // Supervisor interrupt delegation register
+-    SIE,        // Supervisor interrupt-enable register
++    // SSTATUS,    // Supervisor status
++    // SEDELEG,    // Supervisor exception delegation register
++    // SIDELEG,    // Supervisor interrupt delegation register
++    // SIE,        // Supervisor interrupt-enable register
+     STVEC,      // Supervisor trap-handler base address
+     SCOUNTEREN, // Supervisor counter enable
+     SSCRATCH,   // Scratch register for supervisor trap handlers
+@@ -133,7 +123,7 @@ const privileged_reg_t implemented_csr[] = {
+     MIDELEG,    // Machine interrupt delegation register
+     MIE,        // Machine interrupt-enable register
+     MTVEC,      // Machine trap-handler base address
+-    MCOUNTEREN, // Machine counter enable
++    // MCOUNTEREN, // Machine counter enable
+     MSCRATCH,   // Scratch register for machine trap handlers
+     MEPC,       // Machine exception program counter
+     MCAUSE,     // Machine trap cause
+diff --git a/yaml/iss.yaml b/yaml/iss.yaml
+index 1167d7f..0105b05 100644
+--- a/yaml/iss.yaml
++++ b/yaml/iss.yaml
+@@ -15,7 +15,7 @@
+ - iss: spike
+   path_var: SPIKE_PATH
+   cmd: >
+-    <path_var>/spike --log-commits --isa=<variant> --priv=<priv> --misaligned -l <elf>
++    <path_var>/spike --log-commits --isa=<variant> --priv=<priv> -p2 --misaligned -l <elf>
+ 
+ - iss: ovpsim
+   path_var: OVPSIM_PATH

@@ -1,0 +1,16 @@
+{
+    "misaligned_data_supported": false,
+    "privlvs": "msu",
+    "mmu": "sv39,sv48",
+    "marchflags": "-march=rv64gc -mabi=lp64",
+    "bootaddr": "0x80000000",
+    "simname": "exe_HW_sim",
+    "hartids": [0, 1],
+    "corename": "toooba",
+    "wfi_u_mode": false,
+    "simulator": "toooba",
+    "medeleg": "0xbbff",
+    "mideleg": "0xbbb",
+    "clint": "0x2000000",
+    "rvext": []
+}

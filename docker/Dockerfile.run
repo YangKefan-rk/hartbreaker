@@ -1,0 +1,38 @@
+FROM base:v1
+
+# Set the entry point (sets up env vars for runtime)
+COPY --chmod=755 docker_entrypoint.sh /usr/local/bin/docker_entrypoint.sh
+ENTRYPOINT ["/usr/local/bin/docker_entrypoint.sh"]
+
+# Install Docker CLI (for simulators that run inside their own container, e.g. naxriscv)
+RUN apt-get update && apt-get install -y ca-certificates curl gnupg \
+&& install -m 0755 -d /etc/apt/keyrings \
+&& curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg \
+&& echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo $VERSION_CODENAME) stable" > /etc/apt/sources.list.d/docker.list \
+&& apt-get update && apt-get install -y docker-ce-cli \
+&& rm -rf /var/lib/apt/lists/*
+
+# Install additional Python packages needed at runtime
+RUN pip3 install toml
+
+# Install Java 21 for Dat3M/Dartagnan
+RUN apt-get update && apt-get install -y openjdk-21-jre-headless maven \
+&& rm -rf /var/lib/apt/lists/*
+
+# Build Dat3M (Dartagnan memory model checker)
+RUN git clone https://github.com/hernanponcedeleon/Dat3M.git /opt/Dat3M \
+&& cd /opt/Dat3M \
+&& git checkout c884057a7 \
+&& mvn package -DskipTests -q \
+&& chmod -R 755 /opt/Dat3M
+
+ENV DAT3M_HOME=/opt/Dat3M
+ENV DAT3M_OUTPUT=/opt/Dat3M/output
+
+# change user and get zsh for dev
+RUN rm -rf /var/lib/apt/lists/*
+USER attacker
+RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" \
+&& git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions \
+&& git clone https://github.com/zsh-users/zsh-syntax-highlighting ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting \
+&& sed -i 's/plugins=(git)/plugins=(git zsh-autosuggestions zsh-syntax-highlighting)/' ~/.zshrc

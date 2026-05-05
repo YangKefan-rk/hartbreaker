@@ -1,0 +1,53 @@
+diff --git a/scripts/softfloat.mk b/scripts/softfloat.mk
+index db7e472d..45e9f09a 100644
+--- a/scripts/softfloat.mk
++++ b/scripts/softfloat.mk
+@@ -21,7 +21,7 @@ endif
+ 
+ ifdef CONFIG_SHARE
+ SOFTFLOAT_OPTS_DEFAULT = -DSOFTFLOAT_ROUND_ODD -DINLINE_LEVEL=5 \
+-  -DSOFTFLOAT_FAST_DIV32TO16 -DSOFTFLOAT_FAST_DIV64TO32
++  -DSOFTFLOAT_FAST_DIV32TO16 -DSOFTFLOAT_FAST_DIV64TO32 -fPIC
+ SOFTFLOAT_OPTS_OVERRIDE = SOFTFLOAT_OPTS="$(SOFTFLOAT_OPTS_DEFAULT) -fPIC"
+ endif
+ 
+@@ -38,4 +38,4 @@ ifdef CONFIG_FPU_SOFT
+ endif
+ 
+ .PHONY: clean-softfloat
+-	
++
+diff --git a/src/cpu/cpu-exec.c b/src/cpu/cpu-exec.c
+index a9b783f4..39b20d4c 100644
+--- a/src/cpu/cpu-exec.c
++++ b/src/cpu/cpu-exec.c
+@@ -681,6 +681,15 @@ static void execute(int n) {
+     IFDEF(CONFIG_DEBUG, debug_hook(s.pc, s.logbuf));
+     IFDEF(CONFIG_DIFFTEST, difftest_step(s.pc, cpu.pc));
+ 
++    Logtid(
++      "(%s) " FMT_WORD ":   %s%*.s%s    (x%i)=%lx",
++      isa_get_privilege_mode_str(),
++      s.pc, MUXDEF(CONFIG_DEBUG, log_bytebuf, ""),
++      16 - (3 * (int)(s.snpc - s.pc)), "",
++      MUXDEF(CONFIG_DEBUG, log_asmbuf, ""),
++      s.dest.reg, cpu.gpr[s.dest.reg]._64
++    );
++
+     #ifdef CONFIG_ISA_riscv64
+       #ifdef CONFIG_DETERMINISTIC
+         void update_riscv_timer();
+@@ -710,13 +719,6 @@ void fetch_decode(Decode *s, vaddr_t pc) {
+   s->snpc = pc;
+   IFDEF(CONFIG_DEBUG, log_bytebuf[0] = '\0');
+   int idx = isa_fetch_decode(s);
+-  Logtid(
+-    "(%s) " FMT_WORD ":   %s%*.s%s",
+-    isa_get_privilege_mode_str(),
+-    s->pc, MUXDEF(CONFIG_DEBUG, log_bytebuf, ""),
+-    16 - (3 * (int)(s->snpc - s->pc)), "",
+-    MUXDEF(CONFIG_DEBUG, log_asmbuf, "")
+-  );
+   IFDEF(CONFIG_DEBUG, snprintf(
+     s->logbuf, sizeof(s->logbuf),
+     "(%s)" FMT_WORD ":   %s%*.s%s",

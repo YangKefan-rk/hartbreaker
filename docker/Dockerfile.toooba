@@ -1,0 +1,69 @@
+FROM base:v1
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+ARG HARTATTACK_CORES=16
+
+# Toooba-specific dependencies
+RUN apt-get update && apt-get install -y \
+libudev-dev libelf-dev \
+&& rm -rf /var/lib/apt/lists/*
+
+# Install Verilator
+RUN git clone https://github.com/verilator/verilator \
+&& cd verilator \
+&& git checkout v5.034 \
+&& autoconf \
+&& ./configure \
+&& make -j ${HARTATTACK_CORES} \
+&& make install
+
+# Install Bluespec compiler (bsc)
+RUN wget -O /tmp/bsc.tar.gz https://github.com/B-Lang-org/bsc/releases/download/2025.01.1/bsc-2025.01.1-ubuntu-22.04.tar.gz \
+&& mkdir -p /opt/bsc \
+&& tar -xzf /tmp/bsc.tar.gz -C /opt/bsc --strip-components 1 \
+&& rm /tmp/bsc.tar.gz
+
+ENV PATH="/opt/bsc/bin:$PATH"
+ENV BLUESPECDIR="/opt/bsc/lib"
+
+# Clone Toooba at the exact commit used by this project
+RUN git clone https://github.com/bluespec/Toooba.git /Toooba \
+&& cd /Toooba \
+&& git checkout 7e0f057c1ede043a2ed6b25c41d71f6be960283b \
+&& git submodule update --init --recursive
+
+# Apply patches and add missing Verilog primitives
+COPY toooba/patches/toooba_ldmod.patch /tmp/toooba_ldmod.patch
+RUN cd /Toooba && git apply /tmp/toooba_ldmod.patch
+COPY toooba/patches/Counter.v /Toooba/src_Core/RISCY_OOO/procs/asic/bluespec_verilog/Counter.v
+
+# Copy cfg.json files into the image
+COPY toooba/cfg/ /tmp/cfg/
+
+# Build elf_to_hex utility
+RUN make -C /Toooba/Tests/elf_to_hex
+
+# Build 2-core Toooba verilator simulator
+WORKDIR /Toooba/builds/RV64ACDFIMSU_Toooba_verilator
+RUN make CORE_NUM=2 compile -j ${HARTATTACK_CORES}
+RUN make CORE_NUM=2 simulator -j ${HARTATTACK_CORES}
+
+# Stage 2-core output
+RUN mkdir -p /output/toooba-2core \
+&& cp exe_HW_sim /output/toooba-2core/ \
+&& cp /Toooba/Tests/elf_to_hex/elf_to_hex /output/toooba-2core/ \
+&& cp /tmp/cfg/toooba-2core.json /output/toooba-2core/cfg.json
+
+# Clean build directory for 3-core build
+RUN make clean
+
+# Build 3-core Toooba verilator simulator
+RUN make CORE_NUM=3 compile -j ${HARTATTACK_CORES}
+RUN make CORE_NUM=3 simulator -j ${HARTATTACK_CORES}
+
+# Stage 3-core output
+RUN mkdir -p /output/toooba-3core \
+&& cp exe_HW_sim /output/toooba-3core/ \
+&& cp /Toooba/Tests/elf_to_hex/elf_to_hex /output/toooba-3core/ \
+&& cp /tmp/cfg/toooba-3core.json /output/toooba-3core/cfg.json

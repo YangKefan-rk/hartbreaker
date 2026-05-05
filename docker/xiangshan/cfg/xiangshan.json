@@ -1,0 +1,15 @@
+{
+    "misaligned_data_supported": true,
+    "privlvs": "msu",
+    "mmu": "sv39,sv48",
+    "marchflags": "-march=rv64gc_smdbltrp -mabi=lp64",
+    "bootaddr": "0x80000000",
+    "simname": "emu",
+    "hartids": [0, 1],
+    "wfi_u_mode": false,
+    "simulator": "xiangshan",
+    "medeleg": "0xfcb7ff",
+    "mideleg": "0x3666",
+    "clint": "0x38000000",
+    "rvext": ["i", "m", "a", "f", "d", "c", "v", "h", "sdtrig", "sha", "shcounterenw", "shgatpa", "shlcofideleg", "shtvala", "shvsatpa", "shvstvala", "shvstvecd", "smaia", "smcsrind", "smdbltrp", "smmpm", "smnpm", "smrnmi", "smstateen", "ss1p13", "ssaia", "ssccptr", "sscofpmf", "sscounterenw", "sscsrind", "ssdbltrp", "ssnpm", "sspm", "ssstateen", "ssstrict", "sstc", "sstvala", "sstvecd", "ssu64xl", "supm", "sv39", "sv48", "svade", "svbare", "svinval", "svnapot", "svpbmt", "za64rs", "zacas", "zawrs", "zba"]
+}

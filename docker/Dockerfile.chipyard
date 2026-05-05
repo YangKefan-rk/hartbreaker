@@ -1,0 +1,80 @@
+FROM base:v1
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+ARG HARTATTACK_CORES=16
+
+# Install Verilator
+RUN git clone https://github.com/verilator/verilator \
+&& cd verilator \
+&& git checkout v5.034 \
+&& autoconf \
+&& ./configure \
+&& make -j ${HARTATTACK_CORES} \
+&& make install
+
+# Install CIRCT, needed upstream chipyard
+RUN mkdir -p /opt/firtool-1.75.0
+RUN wget -O - https://github.com/llvm/circt/releases/download/firtool-1.75.0/circt-full-static-linux-x64.tar.gz | tar -zx -C /opt/firtool-1.75.0 --strip-components 1
+ENV PATH="/opt/firtool-1.75.0/bin:$PATH"
+
+# use bash
+SHELL ["/bin/bash", "-c"]
+# Get sbt and Java
+RUN curl -s "https://get.sdkman.io" | bash
+# FIXME use fixed java version
+RUN source "$HOME/.sdkman/bin/sdkman-init.sh" \
+&& sdk install java $(sdk list java | grep -o "\b8\.[0-9]*\.[0-9]*\-tem" | head -1) \
+&& sdk install sbt
+
+# Make sdkman java/sbt available for subsequent RUN layers
+ENV SDKMAN_DIR="/root/.sdkman"
+ENV PATH="$SDKMAN_DIR/candidates/java/current/bin:$SDKMAN_DIR/candidates/sbt/current/bin:$PATH"
+
+# Clone chipyard at the exact upstream commit used by this project
+RUN git clone https://github.com/ucb-bar/chipyard.git /chipyard \
+&& cd /chipyard \
+&& git checkout 1b54cf12f2b4ea6a1048635563fe4099d7d1dd1a \
+&& scripts/init-submodules-no-riscv-tools.sh -f
+
+# Apply design patches and custom configs (from docker/chipyard/)
+COPY chipyard/patches/ /tmp/patches/
+RUN cd /chipyard/generators/rocket-chip && git apply /tmp/patches/rocket.patch
+RUN cd /chipyard/generators/boom && git apply /tmp/patches/boom.patch
+
+COPY chipyard/configs/ /tmp/configs/
+RUN cp /tmp/configs/RocketConfigs.scala /tmp/configs/BoomConfigs.scala /tmp/configs/AbstractConfigCustom.scala \
+     /chipyard/generators/chipyard/src/main/scala/config/
+
+# Disable assertions in generated RTL (they fire during fuzzing)
+RUN sed -i 's|+define+STOP_COND=!$(TB).reset|+define+STOP_COND=0 \\\n\t+define+ASSERT_VERBOSE_COND=0|' \
+    /chipyard/sims/common-sim-flags.mk
+
+# Build the simulators
+WORKDIR /chipyard/sims/verilator
+
+RUN make CONFIG=MyTrippleRocketConfig -j ${HARTATTACK_CORES}
+RUN make CONFIG=MyTrippleBoomV3ConfigLog -j ${HARTATTACK_CORES}
+RUN make CONFIG=MyTrippleBoomV4ConfigLog -j ${HARTATTACK_CORES}
+RUN make CONFIG=MyDualRocketConfig -j ${HARTATTACK_CORES}
+RUN make CONFIG=MyDualBoomV3ConfigLog -j ${HARTATTACK_CORES}
+RUN make CONFIG=MyDualBoomV4ConfigLog -j ${HARTATTACK_CORES}
+
+# Copy cfg.json files into the image
+COPY chipyard/cfg/ /tmp/cfg/
+
+# Stage output binaries with cfg.json
+RUN mkdir -p /output/dualrocket /output/dualboomv3 /output/dualboomv4 \
+             /output/tripplerocket /output/trippleboomv3 /output/trippleboomv4 \
+&& cp simulator-chipyard.harness-MyDualRocketConfig /output/dualrocket/ \
+&& cp /tmp/cfg/dualrocket.json /output/dualrocket/cfg.json \
+&& cp simulator-chipyard.harness-MyDualBoomV3ConfigLog /output/dualboomv3/ \
+&& cp /tmp/cfg/dualboomv3.json /output/dualboomv3/cfg.json \
+&& cp simulator-chipyard.harness-MyDualBoomV4ConfigLog /output/dualboomv4/ \
+&& cp /tmp/cfg/dualboomv4.json /output/dualboomv4/cfg.json \
+&& cp simulator-chipyard.harness-MyTrippleRocketConfig /output/tripplerocket/ \
+&& cp /tmp/cfg/tripplerocket.json /output/tripplerocket/cfg.json \
+&& cp simulator-chipyard.harness-MyTrippleBoomV3ConfigLog /output/trippleboomv3/ \
+&& cp /tmp/cfg/trippleboomv3.json /output/trippleboomv3/cfg.json \
+&& cp simulator-chipyard.harness-MyTrippleBoomV4ConfigLog /output/trippleboomv4/ \
+&& cp /tmp/cfg/trippleboomv4.json /output/trippleboomv4/cfg.json

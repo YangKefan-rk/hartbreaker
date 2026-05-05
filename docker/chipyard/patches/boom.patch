@@ -1,0 +1,72 @@
+diff --git a/src/main/scala/v3/common/config-mixins.scala b/src/main/scala/v3/common/config-mixins.scala
+index ca0e2796..a577eb64 100644
+--- a/src/main/scala/v3/common/config-mixins.scala
++++ b/src/main/scala/v3/common/config-mixins.scala
+@@ -19,6 +19,15 @@ import boom.v3.ifu._
+ import boom.v3.exu._
+ import boom.v3.lsu._
+ 
++class WithSupervisorEnabled extends Config((site, here, up) => {
++  case TilesLocated(InSubsystem) => up(TilesLocated(InSubsystem), site) map {
++    case tp: BoomTileAttachParams => tp.copy(tileParams = tp.tileParams.copy(core = tp.tileParams.core.copy(
++      useSupervisor = true
++    )))
++    case other => other
++  }
++})
++
+ // ---------------------
+ // BOOM Config Fragments
+ // ---------------------
+diff --git a/src/main/scala/v3/exu/core.scala b/src/main/scala/v3/exu/core.scala
+index 751d1cc7..97ac1b4e 100644
+--- a/src/main/scala/v3/exu/core.scala
++++ b/src/main/scala/v3/exu/core.scala
+@@ -1356,7 +1356,8 @@ class BoomCore()(implicit p: Parameters) extends BoomModule
+       }
+ 
+       when (rob.io.commit.arch_valids(w)) {
+-        printf("%d 0x%x ",
++        printf("core %d: %d 0x%x ",
++          csr.io.hartid,
+           priv,
+           Sext(rob.io.commit.uops(w).debug_pc(vaddrBits-1,0), xLen))
+         printf_inst(rob.io.commit.uops(w))
+diff --git a/src/main/scala/v4/common/config-mixins.scala b/src/main/scala/v4/common/config-mixins.scala
+index 99bb79cb..f0785ab9 100644
+--- a/src/main/scala/v4/common/config-mixins.scala
++++ b/src/main/scala/v4/common/config-mixins.scala
+@@ -19,6 +19,19 @@ import boom.v4.ifu._
+ import boom.v4.exu._
+ import boom.v4.lsu._
+ 
++// ---------------------
++// Custom BOOM Config Fragments
++// ---------------------
++
++class WithSupervisorEnabled extends Config((site, here, up) => {
++  case TilesLocated(InSubsystem) => up(TilesLocated(InSubsystem), site) map {
++    case tp: BoomTileAttachParams => tp.copy(tileParams = tp.tileParams.copy(core = tp.tileParams.core.copy(
++      useSupervisor = true
++    )))
++    case other => other
++  }
++})
++
+ // ---------------------
+ // BOOM Config Fragments
+ // ---------------------
+diff --git a/src/main/scala/v4/exu/core.scala b/src/main/scala/v4/exu/core.scala
+index a9c87e00..413a3e6b 100644
+--- a/src/main/scala/v4/exu/core.scala
++++ b/src/main/scala/v4/exu/core.scala
+@@ -1298,7 +1298,8 @@ class BoomCore()(implicit p: Parameters) extends BoomModule
+       }
+ 
+       when (rob.io.commit.arch_valids(w)) {
+-        printf("%d 0x%x ",
++        printf("core %d: %d 0x%x ",
++          csr.io.hartid,
+           priv,
+           Sext(rob.io.commit.uops(w).debug_pc(vaddrBits-1,0), xLen))
+         printf_inst(rob.io.commit.uops(w))

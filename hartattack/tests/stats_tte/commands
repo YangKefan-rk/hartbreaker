@@ -1,0 +1,13 @@
+dualboomv4:
+both mem params are 2, load window 5, amo=0
+python main.py dualboomv4 --num-cores 200 --fuzz-mcm --use-addr-regs False
+
+naxriscv:
+both mem params are 2, load window 30, store bias=1, amo=0
+
+toooba:
+both mem params are 0.5
+
+
+xiangshan:
+

@@ -1,0 +1,281 @@
+diff --git a/builds/Resources/Include_verilator.mk b/builds/Resources/Include_verilator.mk
+index eb7509b..0e32156 100644
+--- a/builds/Resources/Include_verilator.mk
++++ b/builds/Resources/Include_verilator.mk
+@@ -34,7 +34,7 @@ SIM_EXE_FILE = exe_HW_sim
+ #    --x-initial fast   Optimize uninitialized value
+ #    --noassert         Disable all assertions
+ 
+-VERILATOR_FLAGS = --stats --x-assign fast --x-initial fast --noassert
++VERILATOR_FLAGS = --stats --x-assign fast --x-initial fast --noassert --timing
+ # VERILATOR_FLAGS = --stats -O3 -CFLAGS -O3 -LDFLAGS -static --x-assign fast --x-initial fast --noassert
+ 
+ # Verilator flags: use the following to include code to generate VCDs
+diff --git a/src_Core/CPU/Core.bsv b/src_Core/CPU/Core.bsv
+index c52ce56..39f724c 100644
+--- a/src_Core/CPU/Core.bsv
++++ b/src_Core/CPU/Core.bsv
+@@ -421,9 +421,9 @@ module mkCore#(CoreId coreId)(Core);
+             method csrf_rd = csrf.rd;
+             method rob_getPC = rob.getOrigPC[valueof(AluExeNum)].get; // last getPC port
+             method rob_setExecuted_doFinishMem = rob.setExecuted_doFinishMem;
+-`ifdef INCLUDE_TANDEM_VERIF
++
+ 	    method rob_setExecuted_doFinishMem_RegData = rob.setExecuted_doFinishMem_RegData;
+-`endif
++
+             method rob_setExecuted_deqLSQ = rob.setExecuted_deqLSQ;
+             method isMMIOAddr = mmio.isMMIOAddr;
+             method mmioReq = mmio.dataReq;
+diff --git a/src_Core/CPU/Proc.bsv b/src_Core/CPU/Proc.bsv
+index 202333e..cec6b1f 100644
+--- a/src_Core/CPU/Proc.bsv
++++ b/src_Core/CPU/Proc.bsv
+@@ -221,7 +221,7 @@ module mkProc (Proc_IFC);
+ 
+    rule rl_tohost;
+       let x <- mmioPlatform.to_host;
+-      $display ("%0d: mmioPlatform.rl_tohost: 0x%0x (= %0d)", cur_cycle, x, x);
++      // $display ("%0d: mmioPlatform.rl_tohost: 0x%0x (= %0d)", cur_cycle, x, x);
+       if (x != 0) begin
+ 	 // Standard RISC-V ISA tests finish by writing a value tohost with x[0]==1.
+ 	 // Further when x[63:1]==0, all tests within the program pass,
+diff --git a/src_Core/RISCY_OOO/coherence/src/CCPipe.bsv b/src_Core/RISCY_OOO/coherence/src/CCPipe.bsv
+index be27e9e..bfdcd66 100644
+--- a/src_Core/RISCY_OOO/coherence/src/CCPipe.bsv
++++ b/src_Core/RISCY_OOO/coherence/src/CCPipe.bsv
+@@ -482,7 +482,7 @@ module mkCCPipeSingleCycle#(
+         end
+         repRam.deqRdResp;
+         repT repInfo = fromMaybe(repRam.rdResp, e2m.repInfo);
+-        $display("%t : doTagMatch repRamdeqRdResp ", $time);
++        // $display("%t : doTagMatch repRamdeqRdResp ", $time);
+         // do tag match to get way to occupy
+         Vector#(wayNum, tagT) tagVec;
+         Vector#(wayNum, msiT) csVec;
+@@ -552,7 +552,7 @@ module mkCCPipeSingleCycle#(
+             dataRam[i].rdReq(index);
+         end
+         repRam.rdReq(index);
+-        $display("%t : enq repRam.rdReq ", $time);
++        // $display("%t : enq repRam.rdReq ", $time);
+         // write reg
+         enq2MatchT e2m = Enq2Match {
+             cmd: cmd,
+diff --git a/src_Core/RISCY_OOO/coherence/src/IBank.bsv b/src_Core/RISCY_OOO/coherence/src/IBank.bsv
+index 49a0047..426a9e1 100644
+--- a/src_Core/RISCY_OOO/coherence/src/IBank.bsv
++++ b/src_Core/RISCY_OOO/coherence/src/IBank.bsv
+@@ -133,7 +133,7 @@ module mkIBank#(
+     Add#(TAdd#(tagSz, indexSz), TAdd#(lgBankNum, LgLineSzBytes), AddrSz)
+ );
+ 
+-    Bool verbose = True;
++    Bool verbose = False;
+ 
+     ICRqMshr#(cRqNum, wayT, tagT, procRqT, resultT) cRqMshr <- mkICRqMshrLocal;
+ 
+diff --git a/src_Core/RISCY_OOO/coherence/src/LLBank.bsv b/src_Core/RISCY_OOO/coherence/src/LLBank.bsv
+index 0a3e57d..590fa42 100644
+--- a/src_Core/RISCY_OOO/coherence/src/LLBank.bsv
++++ b/src_Core/RISCY_OOO/coherence/src/LLBank.bsv
+@@ -178,7 +178,7 @@ module mkLLBank#(
+     Add#(TLog#(TDiv#(childNum,2)), c__, TLog#(childNum))
+ );
+ 
+-   Bool verbose = True;
++   Bool verbose = False;
+ 
+     LLCRqMshr#(cRqNum, wayT, tagT, Vector#(childNum, DirPend), cRqT) cRqMshr <- mkLLMshr;
+ 
+diff --git a/src_Core/RISCY_OOO/procs/RV64G_OOO/CommitStage.bsv b/src_Core/RISCY_OOO/procs/RV64G_OOO/CommitStage.bsv
+index 90a69e9..2ea3119 100644
+--- a/src_Core/RISCY_OOO/procs/RV64G_OOO/CommitStage.bsv
++++ b/src_Core/RISCY_OOO/procs/RV64G_OOO/CommitStage.bsv
+@@ -723,8 +723,9 @@ module mkCommitStage#(CommitInput inIfc)(CommitStage);
+ 
+         if(verbose) $display("[doCommitSystemInst] ", fshow(x));
+         if (verbosity >= 1) begin
+-	   $display("instret:%0d  PC:0x%0h  instr:0x%08h", rg_serial_num, x.pc, x.orig_inst,
+-		    "   iType:", fshow (x.iType), "    [doCommitSystemInst]");
++	   $display("core: %0d instret:%0d  PC:0x%0h  instr:0x%08h", csrf.rd(CSRmhartid), rg_serial_num, x.pc, x.orig_inst,
++		    "   iType:", fshow (x.iType), "    [doCommitSystemInst]",
++            " wb:0x%0h", x.dst_data);
+ 	end
+ 
+         // we claim a phy reg for every inst, so commit its renaming
+@@ -942,8 +943,9 @@ module mkCommitStage#(CommitInput inIfc)(CommitStage);
+                     if (verbose) $display("[doCommitNormalInst - %d] ", i, fshow(inst_tag), " ; ", fshow(x), cur_cycle);
+ 
+ 		    if (verbosity >= 1) begin
+-		       $display("instret:%0d  PC:0x%0h  instr:0x%08h", rg_serial_num + instret, x.pc, x.orig_inst,
+-				"   iType:", fshow (x.iType), "    [doCommitNormalInst [%0d]]", i, cur_cycle);
++		       $display("core: %0d instret:%0d  PC:0x%0h  instr:0x%08h", csrf.rd(CSRmhartid), rg_serial_num + instret, x.pc, x.orig_inst,
++				"   iType:", fshow (x.iType), "    [doCommitNormalInst [%0d]]", i, cur_cycle,
++                " wb:0x%0h", x.dst_data);
+ 		    end
+ 
+ `ifdef INCLUDE_TANDEM_VERIF
+diff --git a/src_Core/RISCY_OOO/procs/RV64G_OOO/MemExePipeline.bsv b/src_Core/RISCY_OOO/procs/RV64G_OOO/MemExePipeline.bsv
+index 8205ef4..817ab47 100644
+--- a/src_Core/RISCY_OOO/procs/RV64G_OOO/MemExePipeline.bsv
++++ b/src_Core/RISCY_OOO/procs/RV64G_OOO/MemExePipeline.bsv
+@@ -161,9 +161,9 @@ interface MemExeInput;
+ 					      Addr vaddr,
+ 					      Data store_data, ByteEn store_data_BE,
+ 					      Bool access_at_commit, Bool non_mmio_st_done);
+-`ifdef INCLUDE_TANDEM_VERIF
++
+     method Action rob_setExecuted_doFinishMem_RegData (InstTag t, Data dst_data);
+-`endif
++
+     method Action rob_setExecuted_deqLSQ(InstTag t, Maybe#(Exception) cause, Maybe#(LdKilledBy) ld_killed);
+     // MMIO
+     method Bool isMMIOAddr(Addr a);
+@@ -696,9 +696,9 @@ module mkMemExePipeline#(MemExeInput inIfc)(MemExePipeline);
+         if(res.dst matches tagged Valid .dst) begin
+             inIfc.writeRegFile(dst.indx, res.data);
+ 
+-`ifdef INCLUDE_TANDEM_VERIF
++
+ 	    inIfc.rob_setExecuted_doFinishMem_RegData (res.instTag, res.data);
+-`endif
++
+ 
+ `ifdef PERF_COUNT
+             // perf: load to use latency
+@@ -838,9 +838,9 @@ module mkMemExePipeline#(MemExeInput inIfc)(MemExePipeline);
+         if(lsqDeqLd.dst matches tagged Valid .dst) begin
+             inIfc.writeRegFile(dst.indx, resp);
+             inIfc.setRegReadyAggr_mem(dst.indx);
+-`ifdef INCLUDE_TANDEM_VERIF
++
+ 	    inIfc.rob_setExecuted_doFinishMem_RegData (lsqDeqLd.instTag, resp);
+-`endif
++
+         end
+         inIfc.rob_setExecuted_deqLSQ(lsqDeqLd.instTag, Invalid, Invalid);
+         if(verbose) $display("[doDeqLdQ_Lr_deq] ", fshow(lsqDeqLd), "; ", fshow(d), "; ", fshow(resp));
+@@ -916,9 +916,9 @@ module mkMemExePipeline#(MemExeInput inIfc)(MemExePipeline);
+         if(lsqDeqLd.dst matches tagged Valid .dst) begin
+             inIfc.writeRegFile(dst.indx, resp);
+             inIfc.setRegReadyAggr_mem(dst.indx);
+-`ifdef INCLUDE_TANDEM_VERIF
++
+ 	    inIfc.rob_setExecuted_doFinishMem_RegData (lsqDeqLd.instTag, resp);
+-`endif
++
+         end
+         inIfc.rob_setExecuted_deqLSQ(lsqDeqLd.instTag, Invalid, Invalid);
+         if(verbose) $display("[doDeqLdQ_MMIO_deq] ", fshow(lsqDeqLd), "; ", fshow(d), "; ", fshow(resp));
+@@ -1136,9 +1136,9 @@ module mkMemExePipeline#(MemExeInput inIfc)(MemExePipeline);
+         if(lsqDeqSt.dst matches tagged Valid .dst) begin
+             inIfc.writeRegFile(dst.indx, resp);
+             inIfc.setRegReadyAggr_mem(dst.indx);
+-`ifdef INCLUDE_TANDEM_VERIF
++
+ 	    inIfc.rob_setExecuted_doFinishMem_RegData (lsqDeqSt.instTag, resp);
+-`endif
++
+         end
+         inIfc.rob_setExecuted_deqLSQ(lsqDeqSt.instTag, Invalid, Invalid);
+         if(verbose) $display("[doDeqStQ_ScAmo_deq] ", fshow(lsqDeqSt), "; ", fshow(resp));
+@@ -1240,9 +1240,9 @@ module mkMemExePipeline#(MemExeInput inIfc)(MemExePipeline);
+         if(lsqDeqSt.dst matches tagged Valid .dst) begin
+             inIfc.writeRegFile(dst.indx, resp);
+             inIfc.setRegReadyAggr_mem(dst.indx);
+-`ifdef INCLUDE_TANDEM_VERIF
++
+ 	    inIfc.rob_setExecuted_doFinishMem_RegData (lsqDeqSt.instTag, resp);
+-`endif
++
+         end
+         inIfc.rob_setExecuted_deqLSQ(lsqDeqSt.instTag, Invalid, Invalid);
+         if(verbose) $display("[doDeqStQ_MMIO_deq] ", fshow(lsqDeqSt), "; ", fshow(resp));
+diff --git a/src_Core/RISCY_OOO/procs/lib/ReorderBuffer.bsv b/src_Core/RISCY_OOO/procs/lib/ReorderBuffer.bsv
+index d584f25..bce1411 100644
+--- a/src_Core/RISCY_OOO/procs/lib/ReorderBuffer.bsv
++++ b/src_Core/RISCY_OOO/procs/lib/ReorderBuffer.bsv
+@@ -117,10 +117,10 @@ interface ReorderBufferRowEhr#(numeric type aluExeNum, numeric type fpuMulDivExe
+ 					  Data   store_data, ByteEn store_data_BE,
+ 					  Bool access_at_commit, Bool non_mmio_st_done);
+ 
+-`ifdef INCLUDE_TANDEM_VERIF
++
+     // Used after a Ld, Lr, Sc, Amo to record reg data
+     method Action setExecuted_doFinishMem_RegData (Data dst_data);
+-`endif
++
+ 
+ `ifdef INORDER_CORE
+     // in-order core sets LSQ tag after getting out of issue queue
+@@ -282,12 +282,12 @@ module mkReorderBufferRowEhr(ReorderBufferRowEhr#(aluExeNum, fpuMulDivExeNum)) p
+         nonMMIOStDone[nonMMIOSt_finishMem_port] <= non_mmio_st_done;
+     endmethod
+ 
+-`ifdef INCLUDE_TANDEM_VERIF
++
+     // Used after a Ld, Lr, Sc, Amo to record reg data
+     method Action setExecuted_doFinishMem_RegData (Data dst_data);
+        rg_dst_data <= dst_data;
+     endmethod
+-`endif
++
+ 
+ `ifdef INORDER_CORE
+     method Action setLSQTag(LdStQTag t, Bool isFence);
+@@ -468,10 +468,10 @@ interface SupReorderBuffer#(numeric type aluExeNum, numeric type fpuMulDivExeNum
+ 					  Data store_data, ByteEn store_data_BE,
+ 					  Bool access_at_commit, Bool non_mmio_st_done);
+ 
+-`ifdef INCLUDE_TANDEM_VERIF
++
+     // Used after a Ld, Lr, Sc, Amo to record reg data
+     method Action setExecuted_doFinishMem_RegData (InstTag x, Data dst_data);
+-`endif
++
+ 
+ `ifdef INORDER_CORE
+     // in-order core sets LSQ tag after getting out of issue queue
+@@ -1048,12 +1048,12 @@ module mkSupReorderBuffer#(
+ 						  access_at_commit, non_mmio_st_done);
+     endmethod
+ 
+-`ifdef INCLUDE_TANDEM_VERIF
++
+     // Used after a Ld, Lr, Sc, Amo to record reg data
+     method Action setExecuted_doFinishMem_RegData (InstTag x, Data dst_data);
+        row[x.way][x.ptr].setExecuted_doFinishMem_RegData (dst_data);
+     endmethod
+-`endif
++
+ 
+ `ifdef INORDER_CORE
+     method Action setLSQTag(InstTag x, LdStQTag t, Bool isFence);
+diff --git a/src_Core/RISCY_OOO/procs/lib/SplitLSQ.bsv b/src_Core/RISCY_OOO/procs/lib/SplitLSQ.bsv
+index fefd8a3..a695eb3 100644
+--- a/src_Core/RISCY_OOO/procs/lib/SplitLSQ.bsv
++++ b/src_Core/RISCY_OOO/procs/lib/SplitLSQ.bsv
+@@ -281,9 +281,9 @@ typedef struct {
+ typedef struct {
+     Bool wrongPath;
+     Maybe#(PhyDst) dst;
+-`ifdef INCLUDE_TANDEM_VERIF
++
+     InstTag instTag;    // For recording Ld data in ROB
+-`endif
++
+     Data data;
+ } LSQRespLdResult deriving(Bits, Eq, FShow);
+ 
+@@ -1895,9 +1895,8 @@ module mkSplitLSQ(SplitLSQ);
+         let res = LSQRespLdResult {
+             wrongPath: False,
+             dst: Invalid,
+-`ifdef INCLUDE_TANDEM_VERIF
++
+ 	    instTag: ld_instTag [t],    // For recording Ld data in ROB
+-`endif
+             data: ?
+         };
+         if(ld_waitWPResp_resp[t]) begin

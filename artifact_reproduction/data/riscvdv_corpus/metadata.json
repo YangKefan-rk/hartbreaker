@@ -1,0 +1,13 @@
+{
+    "generation_time_s": 65314,
+    "generation_cores": 17,
+    "simulation_time_s": 57600,
+    "simulation_cores": 200,
+    "simulation_failures": 28319,
+    "simulation_effective_s": 3024300,
+    "total_core_hours": 858.2261,
+    "num_test_types": 17,
+    "iterations_per_test": 5000,
+    "simulator": "questa",
+    "notes": "simulation_effective_s = 200*(16*3600) - (5*60)*28319 = 3024300"
+}

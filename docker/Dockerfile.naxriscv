@@ -1,0 +1,78 @@
+FROM ubuntu:22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install some dependencies
+RUN apt-get update && apt-get install -y \
+curl \
+build-essential \
+git \
+perl \
+make \
+autoconf \
+g++ \
+flex \
+bison \
+ccache \
+libgoogle-perftools-dev \
+libfl2 \
+libfl-dev \
+zlib1g \
+zlib1g-dev \
+gawk \
+libexpat-dev \
+libexpat1-dev \
+device-tree-compiler \
+zip \
+unzip \
+libboost-all-dev \
+wget
+
+ENV NAXRISCV=/NaxRiscv
+
+# Get the repo
+RUN git clone https://github.com/SpinalHDL/NaxRiscv.git --recursive \
+&& cd NaxRiscv \
+&& (cd ext/NaxSoftware && ./init.sh)
+
+# Building riscv-isa-sim (spike), used as a golden model during the sim to check the dut behaviour (lock-step)
+RUN cd $NAXRISCV/ext/riscv-isa-sim \
+&& mkdir build \
+&& cd build \
+&& ../configure --prefix=$RISCV --without-boost --without-boost-asio --without-boost-regex \
+&& make -j16
+
+# Install ELFIO, used to load elf file in the sim
+RUN git clone https://github.com/serge1/ELFIO.git \
+&& cd ELFIO \
+&& git checkout d251da09a07dff40af0b63b8f6c8ae71d2d1938d \
+&& cp -R elfio /usr/include
+
+# Install Verilator
+RUN git clone https://github.com/verilator/verilator \
+&& unset VERILATOR_ROOT \
+&& cd verilator \
+&& git pull \
+&& git checkout v4.228 \
+&& autoconf \
+&& ./configure \
+&& make -j16 \
+&& make install
+
+# use bash
+SHELL ["/bin/bash", "-c"]
+# Get sbt and Java
+RUN curl -s "https://get.sdkman.io" | bash
+RUN source "$HOME/.sdkman/bin/sdkman-init.sh" \
+&& sdk install java $(sdk list java | grep -o "\b11\.0\.[0-9]*\-tem" | head -1) \
+&& sdk install sbt 1.7.1
+
+# Make sdkman java/sbt available at runtime
+ENV SDKMAN_DIR="/root/.sdkman"
+ENV PATH="$SDKMAN_DIR/candidates/java/current/bin:$SDKMAN_DIR/candidates/sbt/current/bin:$PATH"
+
+# Generate NaxRiscv
+RUN cd $NAXRISCV \
+&& sbt "runMain naxriscv.Gen"
+
+WORKDIR $NAXRISCV

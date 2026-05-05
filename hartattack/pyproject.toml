@@ -1,0 +1,8 @@
+# Project metadata
+[project]
+name = "HartBreaker"
+version = "1.0.0"
+description = "HARTBREAKER: Deterministic Fuzzing of Multi-Hart RISC-V CPUs with Non-Deterministic Programs "
+authors = [{ name = "Quentin Bordier", email = "bordierq@ethz.ch" }]
+license = "MIT"
+requires-python = ">=3.8"

@@ -1,11 +1,15 @@
 #!/bin/bash
+# Copyright 2026 Quentin Bordier, ETH Zurich.
+# Licensed under the General Public License, Version 3.0, see LICENSE for details.
+# SPDX-License-Identifier: GPL-3.0-only
 # Collect all benchmark data used by figures 10-13.
 # Skips runs whose JSONL output already exists and is non-empty.
 source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 
 DATA_DIR="${WORKDIR}/artifact_reproduction/data/benchmark"
 COLLECTOR="tests/collect_data/main.py"
-NUM_PROGRAMS=500
+# Override either knob via env: HARTATTACK_NUM_PROGRAMS, HARTATTACK_CORES.
+NUM_PROGRAMS="${HARTATTACK_NUM_PROGRAMS:-500}"
 NUM_INSTRS=(1000 2000 4000 8000)
 
 # design  verif_flag

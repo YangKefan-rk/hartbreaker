@@ -1,4 +1,7 @@
 #!/bin/bash
+# Copyright 2026 Quentin Bordier, ETH Zurich.
+# Licensed under the General Public License, Version 3.0, see LICENSE for details.
+# SPDX-License-Identifier: GPL-3.0-only
 # Figure 14: Coverage comparison (HartBreaker vs RISCV-DV)
 source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 
@@ -9,14 +12,14 @@ CORPUS_DIR="${DATA_DIR}/corpus"
 RISCVDV_CORPUS="${WORKDIR}/artifact_reproduction/data/riscvdv_corpus"
 SIM_PATH="${COV_COMPARE_DIR}/out/rfuzz-sim"
 TIMING_FILE="${DATA_DIR}/timing.jsonl"
-NUM_CORES=200
+# Override via env: HARTATTACK_CORES.
+NUM_CORES="${HARTATTACK_CORES:-200}"
 
 # Quick mode: shorter timeouts for testing the pipeline
 QUICK=false
 if [ "${1}" = "--quick" ]; then
     QUICK=true
-    NUM_CORES=200
-    echo "=== QUICK MODE: reduced timeouts and cores ==="
+    echo "=== QUICK MODE: reduced timeouts ==="
 fi
 
 mkdir -p "${DATA_DIR}" "${CORPUS_DIR}"

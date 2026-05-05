@@ -1,3 +1,6 @@
+# Copyright 2026 Flavien Solt, Quentin Bordier ETH Zurich.
+# Licensed under the General Public License, Version 3.0, see LICENSE for details.
+# SPDX-License-Identifier: GPL-3.0-only
 
 
 # Toplevel for a cycle of program generation and RTL simulation.
@@ -19,7 +22,7 @@ import json
 import subprocess
 
 TIMEOUT = 60 * 100  # 60 minutes per testscases
-NUM_CORES = 200
+NUM_CORES = int(os.environ.get("HARTATTACK_CORES", 200))
 N_BUG_REDISCOVER = 20
 
 BASE_DISTRIBUTION = {
@@ -266,7 +269,7 @@ def main():
     parser = argparse.ArgumentParser(description="Time-to-Exposure experiments")
     parser.add_argument("design", nargs="?", default=None,
                         help="Single design to run (default: all designs)")
-    parser.add_argument("--output-dir", default="/scratch/bordierq/tte_data",
+    parser.add_argument("--output-dir", default="./tte_data",
                         help="Base output directory for TTE data")
     args = parser.parse_args()
 

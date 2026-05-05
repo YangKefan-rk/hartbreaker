@@ -1,4 +1,7 @@
 #!/bin/bash
+# Copyright 2026 Quentin Bordier, ETH Zurich.
+# Licensed under the General Public License, Version 3.0, see LICENSE for details.
+# SPDX-License-Identifier: GPL-3.0-only
 # Figure 15: Time-to-Exposure (TTE) for bug rediscovery
 source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 

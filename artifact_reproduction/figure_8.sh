@@ -1,4 +1,7 @@
 #!/bin/bash
+# Copyright 2026 Quentin Bordier, ETH Zurich.
+# Licensed under the General Public License, Version 3.0, see LICENSE for details.
+# SPDX-License-Identifier: GPL-3.0-only
 # Figure 8: PPO rule usage probabilities
 source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 

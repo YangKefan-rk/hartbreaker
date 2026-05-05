@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright 2026 Flavien Solt, Quentin Bordier ETH Zurich.
+# Licensed under the General Public License, Version 3.0, see LICENSE for details.
+# SPDX-License-Identifier: GPL-3.0-only
 """
 Plot the time breakdown for verification and no-verification runs to identify throughput bottlenecks.
 Shows stacked bars for generation, simulation, and verification times.

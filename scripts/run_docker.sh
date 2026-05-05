@@ -1,4 +1,7 @@
 #!/bin/bash
+# Copyright 2026 Quentin Bordier, ETH Zurich.
+# Licensed under the General Public License, Version 3.0, see LICENSE for details.
+# SPDX-License-Identifier: GPL-3.0-only
 set -e
 
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -34,6 +37,8 @@ docker run \
   --group-add "$(stat -c '%g' /var/run/docker.sock)" \
   "${EXTRA_VOLUMES[@]}" \
   -e HARTATTACK_CORES="${HARTATTACK_CORES}" \
+  -e HARTATTACK_NUM_PROGRAMS \
+  -e HARTATTACK_NUM_ELFS \
   -e WORKDIR="${WORKDIR}" \
   -e HARTATTACK_ROOT="${HARTATTACK_ROOT}" \
   -e HARTATTACK_DATADIR="${HARTATTACK_DATADIR}" \

@@ -39,6 +39,27 @@ NaxRiscv is built via its own Dockerfile:
 
 Building all simulators from source takes several hours and requires significant disk space for the intermediate Docker images.
 
+## Configuration
+
+Two knobs control reproduction cost. Both are environment variables -- export them before launching any reproduction script (or set them in `scripts/env.sh`):
+
+| Variable | Used by | Default | What it controls |
+|---|---|---|---|
+| `HARTATTACK_CORES` | All build scripts and all reproduction scripts | `15` | Cores for `make -j` during Docker builds and parallel workers during fuzzing. Set this to your machine's core count (e.g. `200` on a cluster node). |
+| `HARTATTACK_NUM_PROGRAMS` | `collect_data.sh` (Figs 10-13), `stats_ppo_rules` (Fig 8) | `500` (collect_data) / `10000` (PPO) | Programs generated per design/instruction-size combo. |
+| `HARTATTACK_NUM_ELFS` | `figure_9.sh` | `10000` | ELFs analyzed for the memory-distance distribution. |
+
+Example -- run everything on a 64-core box with shorter benchmarks:
+
+```bash
+export HARTATTACK_CORES=64
+export HARTATTACK_NUM_PROGRAMS=100
+./artifact_reproduction/collect_data.sh
+./artifact_reproduction/figure_10.sh
+```
+
+Per-design caps (e.g. naxriscv/vexiiriscv max 20 cores) still apply on top of `HARTATTACK_CORES`.
+
 ## Reproducing the experiments
 
 Each figure from the paper has a corresponding script in `artifact_reproduction/`. All scripts run inside the `run` Docker container and produce PDF figures in `figures/`.

@@ -1,3 +1,6 @@
+# Copyright 2026 Flavien Solt, Quentin Bordier ETH Zurich.
+# Licensed under the General Public License, Version 3.0, see LICENSE for details.
+# SPDX-License-Identifier: GPL-3.0-only
 
 
 # This script is responsible for running the RTL simulations from ..the fuzzer.
@@ -255,11 +258,12 @@ def _runsim_vexiiriscv(
     design_simdir = get_designparams.get_design_simulator_dir(design_name)
     sim_path = f"{design_simdir}/Soc/test"
 
-    # use the correct java version
-    java_home = "/local/home/bordierq/.sdkman/candidates/java/8.0.472-tem"
+    # Honor JAVA_HOME if the user set one (vexiiriscv historically needs JDK 8);
+    # otherwise rely on the system Java already on PATH.
     env = os.environ.copy()
-    env["JAVA_HOME"] = java_home
-    env["PATH"] = f"{java_home}/bin:" + env["PATH"]
+    java_home = env.get("JAVA_HOME")
+    if java_home:
+        env["PATH"] = f"{java_home}/bin:" + env["PATH"]
 
     # Run simulation
     exec_out = ""

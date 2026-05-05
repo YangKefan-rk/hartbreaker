@@ -1,3 +1,6 @@
+# Copyright 2026 Flavien Solt, Quentin Bordier ETH Zurich.
+# Licensed under the General Public License, Version 3.0, see LICENSE for details.
+# SPDX-License-Identifier: GPL-3.0-only
 """
 This class keeps track of the state of the actual hardware. The main purpose of
 tracking the harware state is to know the state of CSR registers during

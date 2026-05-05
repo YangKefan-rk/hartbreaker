@@ -1,3 +1,6 @@
+# Copyright 2026 Flavien Solt, Quentin Bordier ETH Zurich.
+# Licensed under the General Public License, Version 3.0, see LICENSE for details.
+# SPDX-License-Identifier: GPL-3.0-only
 
 
 # Toplevel for a cycle of program generation and RTL simulation.
@@ -237,8 +240,8 @@ class FuzzDesign:
 
 
 def main():
-    NUM_CORES = 150
-    NUM_PROGS = 10000
+    NUM_CORES = int(os.environ.get("HARTATTACK_CORES", 150))
+    NUM_PROGS = int(os.environ.get("HARTATTACK_NUM_PROGRAMS", 10000))
 
     ##
     # Fuzz

@@ -1,4 +1,7 @@
 #!/bin/sh
+# Copyright 2026 Quentin Bordier, ETH Zurich.
+# Licensed under the General Public License, Version 3.0, see LICENSE for details.
+# SPDX-License-Identifier: GPL-3.0-only
 
 # Check if we are inside a Docker container
 if [ "$HARTATTACK_ENV_SOURCED" != "yes" ]; then

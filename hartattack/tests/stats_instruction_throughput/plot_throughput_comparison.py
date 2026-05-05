@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright 2026 Flavien Solt, Quentin Bordier ETH Zurich.
+# Licensed under the General Public License, Version 3.0, see LICENSE for details.
+# SPDX-License-Identifier: GPL-3.0-only
 """
 Plot median throughput (instructions/second) for different designs at all instruction sizes.
 Creates stacked bar plots showing with and without verification time for each design.

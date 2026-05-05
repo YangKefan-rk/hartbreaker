@@ -1,46 +1,20 @@
-#!/bin/sh
+#!/bin/bash
 # Copyright 2026 Quentin Bordier, ETH Zurich.
 # Licensed under the General Public License, Version 3.0, see LICENSE for details.
 # SPDX-License-Identifier: GPL-3.0-only
 
-# Check if we are inside a Docker container
-if [ "$HARTATTACK_ENV_SOURCED" != "yes" ]; then
-    echo "Running in docker container"
-    ./scripts/run_docker.sh "$(realpath "$0")" "$@"
-    exit 0
-fi
+ROOT_DIR=$(dirname -- ${BASH_SOURCE[0]})
 
-##
-# Design repositories TODO this should be local, and build using this docker
-# image, locally !
-##
+echo "======== Making all designs ========"
 
-echo "Cloning the repositories!"
+echo "1/4 Building Chipyard based design"
+$ROOT_DIR/build_chipyard.sh
 
-##
-# CHIPYARD
-##
+echo "2/4 Building Toooba"
+$ROOT_DIR/build_toooba.sh
 
-# Get the repo
-cd "${DESIGN_DIR}" \
-&& git clone https://github.com/ucb-bar/chipyard.git
-# Init the repo submodules
-cd "${DESIGN_DIR}"/chipyard \
-&& git checkout HEAD \
-&& scripts/init-submodules-no-riscv-tools.sh -f
-# Make the stock rocket design
-cd "${DESIGN_DIR}"/chipyard/sims/verilator \
-&& make
+echo "3/4 Building XiangShan"
+$ROOT_DIR/build_xs.sh
 
-# TODO MANUAL
-# - add supervisor mode for rocket
-# - add commitlogs for rocket and boom
-# - making custom abstractconfigs which remove useless stuff like
-#
-# Modified files:
-# ./chipyard/generators/rocket-chip/src/main/scala/rocket/Configs.scala
-# ./chipyard/generators/chipyard/src/main/scala/config/BoomConfigs.scala
-# ./chipyard/generators/boom/src/main/scala/v4/common/config-mixins.scala
-# ./chipyard/generators/chipyard/src/main/scala/config/RocketConfigs.scala
-# ./chipyard/generators/chipyard/src/main/scala/config/AbstractConfigCustom.scala
-# ./chipyard/generators/rocket-chip/src/main/scala/tile/Core.scala
+echo "4/4 Building NaxRiscv"
+$ROOT_DIR/build_docker.sh naxriscv

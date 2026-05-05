@@ -8,7 +8,15 @@ All build and reproduction steps run inside Docker. The `chipyard`, `covcollect`
 ./scripts/build_docker.sh base
 ```
 
-Subsequent build scripts (`build_chipyard.sh`, `build_toooba.sh`, `build_xs.sh`) and the experiment scripts assume `base:v1` exists. If you only want Figure 14, you also need the `covcollect:v1` image:
+Subsequent build scripts (`build_chipyard.sh`, `build_toooba.sh`, `build_xs.sh`) and the experiment scripts assume `base:v1` exists.
+
+All reproduction scripts in `artifact_reproduction/` run inside the `run:v1` image, so build it next:
+
+```bash
+./scripts/build_docker.sh run
+```
+
+If you also want Figure 14, build the `covcollect:v1` image:
 
 ```bash
 ./scripts/build_docker.sh covcollect
@@ -19,6 +27,14 @@ The `covcollect` image bakes in pinned clones of [milesan-yosys](https://github.
 ## Simulators
 
 Simulator binaries are not committed to the repository. Each build script compiles a design inside its Docker container and extracts the binary plus a generated `cfg.json` (describing the design parameters) into `simulators/<design>/`.
+
+To build everything in one go (Chipyard, Toooba, XiangShan, NaxRiscv):
+
+```bash
+./scripts/make_designs.sh
+```
+
+Or build individual designs:
 
 ```bash
 # Chipyard designs (Rocket, BOOM)
@@ -213,3 +229,26 @@ All generated figures are saved to `figures/`. Intermediate benchmark data is st
 | `figures/` | Generated output figures (PDF) |
 | `docker/` | Dockerfiles for building simulator and run images |
 | `scripts/` | Environment setup and build scripts |
+
+## Optional shell helpers
+
+`scripts/all.sh` is a convenience wrapper meant to be **sourced** from your interactive shell. It loads `scripts/env.sh` (so `WORKDIR`, `HARTATTACK_CORES`, etc. are exported) and registers a few helper functions:
+
+```bash
+source scripts/all.sh
+lsfn      # list the helpers
+lsenv     # print the active HartBreaker env vars
+dshell    # open a zsh inside the `run` Docker container
+```
+
+| Function | Purpose |
+|---|---|
+| `lsenv` | print `WORKDIR`, `HARTATTACK_ROOT`, `HARTATTACK_CORES`, `DESIGN_DIR`, `HARTATTACK_DATADIR`, `HARTATTACK_BUGDIR` |
+| `lsfn` | list available helpers |
+| `dshell` | open an interactive shell in the `run` Docker container (wraps `scripts/run_docker.sh`) |
+| `mstatus <hex>` | decode a RISC-V `mstatus` register value |
+| `rvdump <elf>` | colored disassembly via `riscv64-unknown-elf-objdump` |
+
+`rvdump` requires `riscv64-unknown-elf-objdump` on `PATH`. The Docker images already ship the toolchain at `/opt/riscv/bin`, so the easiest way to use it is to run `dshell` first and then source `scripts/all.sh` again inside the container.
+
+Sourcing `all.sh` is **not** required for any of the build or reproduction scripts -- those source `env.sh` directly. It only exists for interactive use.

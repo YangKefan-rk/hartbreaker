@@ -31,6 +31,7 @@ ENV PATH="${PATH}:/sv2v/bin/"
 RUN git clone https://github.com/milesan-artifacts/milesan-yosys.git /opt/milesan-yosys \
 && cd /opt/milesan-yosys \
 && git checkout 67fe6db9b38875c3d567db7592727faae81c4dcb \
+&& git submodule update --init --recursive \
 && make -j ${HARTATTACK_CORES}
 ENV MILESAN_YOSYS="/opt/milesan-yosys/yosys"
 

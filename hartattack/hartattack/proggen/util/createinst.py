@@ -3,62 +3,63 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 
-from typing import TYPE_CHECKING
 from random import Random
+from typing import TYPE_CHECKING
+
 from ... import runparams
-from ...states import IntRegState, FloatRegState
-from ...riscv import FenceOrdering, Ordering, IntReg
 from ...instgen import (
-    PARAM_REGTYPE,
     INSTRUCTION_IDS,
-    PARAM_SIZES_BITS_64,
-    PARAM_SIZES_BITS_32,
     PARAM_IS_SIGNED,
-    R12DInstr,
-    ImmRdInstr,
-    RegImmInstr,
-    BranchInstr,
-    JALInstr,
-    JALRInstr,
-    FenceInstr,
-    IntLoadInstr,
-    IntStoreInstr,
-    FloatLoadInstr,
-    FloatStoreInstr,
-    FloatToIntInstr,
-    IntToFloatInstr,
-    Float4Instr,
-    Float3Instr,
-    Float3NoRmInstr,
-    Float2Instr,
-    FloatIntRd2Instr,
-    FloatIntRd1Instr,
-    FloatIntRs1Instr,
-    AmoStore,
+    PARAM_REGTYPE,
+    PARAM_SIZES_BITS_32,
+    PARAM_SIZES_BITS_64,
     AmoInstr,
-    R12DInstrs,
-    ImmRdInstrs,
-    RegImmInstrs,
-    BranchInstrs,
-    JALInstrs,
-    JALRInstrs,
-    FenceInstrs,
-    IntLoadInstrs,
-    IntStoreInstrs,
-    FloatLoadInstrs,
-    FloatStoreInstrs,
-    FloatToIntInstrs,
-    IntToFloatInstrs,
-    Float4Instrs,
-    Float3Instrs,
-    Float3NoRmInstrs,
-    Float2Instrs,
-    FloatIntRd2Instrs,
-    FloatIntRd1Instrs,
-    FloatIntRs1Instrs,
-    AmoStores,
     AmoInstrs,
+    AmoStore,
+    AmoStores,
+    BranchInstr,
+    BranchInstrs,
+    FenceInstr,
+    FenceInstrs,
+    Float2Instr,
+    Float2Instrs,
+    Float3Instr,
+    Float3Instrs,
+    Float3NoRmInstr,
+    Float3NoRmInstrs,
+    Float4Instr,
+    Float4Instrs,
+    FloatIntRd1Instr,
+    FloatIntRd1Instrs,
+    FloatIntRd2Instr,
+    FloatIntRd2Instrs,
+    FloatIntRs1Instr,
+    FloatIntRs1Instrs,
+    FloatLoadInstr,
+    FloatLoadInstrs,
+    FloatStoreInstr,
+    FloatStoreInstrs,
+    FloatToIntInstr,
+    FloatToIntInstrs,
+    ImmRdInstr,
+    ImmRdInstrs,
+    IntLoadInstr,
+    IntLoadInstrs,
+    IntStoreInstr,
+    IntStoreInstrs,
+    IntToFloatInstr,
+    IntToFloatInstrs,
+    JALInstr,
+    JALInstrs,
+    JALRInstr,
+    JALRInstrs,
+    R12DInstr,
+    R12DInstrs,
+    RegImmInstr,
+    RegImmInstrs,
 )
+from ...riscv import FenceOrdering, IntReg, Ordering
+from ...states import FloatRegState, IntRegState
 
 if TYPE_CHECKING:
     from ...states import CoreState, FuzzerState
@@ -236,10 +237,19 @@ def _create_intstoreinstr(
 
     # use unique value when using verify memory trace
     if runparams.VERIFY_MEMORY_TRACE:
+        # FIXME we can remove the addi, we do not need independant values. Once
+        # the addi is removed, we can use both the address and conused methods
+        # safely. Yet, we still have to adapt the litmus translation.
         assert runparams.USE_ADDR_REGS  # or, we could overwrite the consumed reg
         rs2 = corestate.intregpickstate.pick_int_outputreg_nonzero()
         ret = [
-            RegImmInstr("addi", rs2, IntReg.zero, fuzzerstate.curr_store_val % (1 << 11), is_rv64),
+            RegImmInstr(
+                "addi",
+                rs2,
+                IntReg.zero,
+                fuzzerstate.curr_store_val % (1 << 11),
+                is_rv64,
+            ),
             IntStoreInstr(
                 instr_str, rs1, rs2, imm, producer_id, is_rv64, iscompressed, addr
             ),
@@ -435,7 +445,13 @@ def _create_amoinstr(
     if runparams.VERIFY_MEMORY_TRACE:
         assert runparams.USE_ADDR_REGS  # or, we could overwrite the conumed reg
         ret = [
-            RegImmInstr("addi", rs2, IntReg.zero, fuzzerstate.curr_store_val  % (1 << 11), is_rv64),
+            RegImmInstr(
+                "addi",
+                rs2,
+                IntReg.zero,
+                fuzzerstate.curr_store_val % (1 << 11),
+                is_rv64,
+            ),
             AmoInstr(instr_str, rd, rs1, rs2, ordering, producer_id, dest_addr=addr),
         ]
         fuzzerstate.curr_store_val += 1

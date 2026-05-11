@@ -252,3 +252,12 @@ dshell    # open a zsh inside the `run` Docker container
 `rvdump` requires `riscv64-unknown-elf-objdump` on `PATH`. The Docker images already ship the toolchain at `/opt/riscv/bin`, so the easiest way to use it is to run `dshell` first and then source `scripts/all.sh` again inside the container.
 
 Sourcing `all.sh` is **not** required for any of the build or reproduction scripts -- those source `env.sh` directly. It only exists for interactive use.
+
+## Limitation
+
+The tool offers different backend options for memory consistency, such as herd7 and dartagnan, as well as a custom solver coded by us.
+Each solver has a different set of limitiation with respect to the ammount of instructions that can be used, please refer to the source code.
+
+Furthermore, we offer 2 options to generate the address of load and stores:
+ - address registers (`--use-addr-regs`). This option loads addresses in register during initialization and always uses this set of registers. This options can miss some bugs, as there is no address compuation before a memory operation.
+ - on the fly generation. This method is more complete, but can only be used with the custom backend. We will fix this in the near future. To fix it, the litmus translation algorithm should be aware of the address in the registers, and use the correct one from the litmus registers.

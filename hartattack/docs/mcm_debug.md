@@ -7,12 +7,12 @@ The Memory Consistency Model (MCM) fuzzing mode (`--fuzz-mcm`) generates program
 ## Enabling MCM fuzzing
 
 ```bash
-python3 hartattack/main.py <design> --fuzz-mcm --verify-memory-trace herd
+python3 hartattack/main.py <design> --fuzz-mcm --verify-memory-trace dat
 ```
 
 The `--verify-memory-trace` flag selects the verification backend:
-- `herd` -- Uses Herdtools7 (recommended for RVWMO compliance checking)
 - `dat` -- Uses Dat3M
+- other backends are not yet well sopported
 
 Without `--verify-memory-trace`, the built-in Z3-based solver is used.
 
@@ -65,7 +65,7 @@ python3 hartattack/main.py <design> --fuzz-mcm --fuzzsingle <seed> --keep-tmpfil
 When the built-in Z3 solver reports a violation, cross-check with Herdtools7:
 
 ```bash
-python3 hartattack/main.py <design> --fuzz-mcm --fuzzsingle <seed> --verify-memory-trace herd
+python3 hartattack/main.py <design> --fuzz-mcm --fuzzsingle <seed> --verify-memory-trace dat
 ```
 
 If the external solver disagrees, the issue may be in the trace extraction rather than the processor.

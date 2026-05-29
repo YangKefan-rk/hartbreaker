@@ -261,3 +261,5 @@ Each solver has a different set of limitiation with respect to the ammount of in
 Furthermore, we offer 2 options to generate the address of load and stores:
  - address registers (`--use-addr-regs`). This option loads addresses in register during initialization and always uses this set of registers. This options can miss some bugs, as there is no address compuation before a memory operation.
  - on the fly generation. This method is more complete, but can only be used with the custom backend. We will fix this in the near future. To fix it, the litmus translation algorithm should be aware of the address in the registers, and use the correct one from the litmus registers.
+
+Currently, the repo does not integrate herd7 in the docker script pipeline. To test it out, install hard7 manually.

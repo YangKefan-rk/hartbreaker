@@ -77,7 +77,7 @@ python3 hartattack/main.py <design_name> [OPTIONS]
 | `--authorize-privileges` | true | Allow privileged instructions |
 | `--fuzz-mcm` | false | Fuzz memory consistency model |
 | `--fuzz-interrupts` | false | Enable interrupt fuzzing |
-| `--verify-memory-trace {herd,dat}` | none | Use external MCM solver (Herdtools7 or Dat3M) |
+| `--verify-memory-trace {dat}` | none | Use external MCM solver (Herdtools7 or Dat3M) |
 | `--keep-tmpfiles` | false | Retain generated files after execution |
 | `--debug-rtl` | false | Generate ELF with Spike device addresses |
 | `--no-final-check` | false | Skip register verification after execution |
@@ -93,8 +93,8 @@ python3 hartattack/main.py dualrocket --num-cores 8
 # Generate a single ELF for seed 42
 python3 hartattack/main.py boom --gensingle 42
 
-# Fuzz memory consistency model with Herdtools7 verification
-python3 hartattack/main.py dualboomv3 --fuzz-mcm --verify-memory-trace herd
+# Fuzz memory consistency model with dartagna verification
+python3 hartattack/main.py dualboomv3 --fuzz-mcm --verify-memory-trace dat
 
 # Fuzz with interrupts enabled
 python3 hartattack/main.py tripplerocket --fuzz-interrupts --num-cores 4

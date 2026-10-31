@@ -55,11 +55,20 @@ class TestCaseGenerator:
         self.corestates: dict[int, "CoreState"] = {}
         for hartid in test_params.hartids:
             self.corestates[hartid] = CoreState(test_params, hartid)
-        self.num_addr_regs = self.get_num_addr_registers(
-            self.fuzzerstate.num_store_locs
-        )
-        for hartid in test_params.hartids:
-            self.corestates[hartid].pick_addr_regs(self.num_addr_regs, test_params.prng)
+        if runparams.USE_ADDR_REGS:
+            common_unused = self.get_common_unused_addr_regs()
+            self.num_addr_regs = min(self.fuzzerstate.num_store_locs, len(common_unused))
+            if not self.num_addr_regs:
+                raise ValueError("no address register is free on every hart")
+            addr_regs = test_params.prng.sample(common_unused, self.num_addr_regs)
+            for core in self.corestates.values():
+                core.addr_regs = addr_regs.copy()
+        else:
+            self.num_addr_regs = self.get_num_addr_registers(
+                self.fuzzerstate.num_store_locs
+            )
+            for hartid in test_params.hartids:
+                self.corestates[hartid].pick_addr_regs(self.num_addr_regs, test_params.prng)
 
         # Generate the static blocks (non-fuzzing & testcase independant)
         init_ok = gen_initial_basic_block(
@@ -412,19 +421,20 @@ class TestCaseGenerator:
         gen_mcm_statereset_handler(self.fuzzerstate, test_params)
 
     def get_num_addr_registers(self, num_store_locs: int) -> int:
-        """returns the number of unsed register.
-        This is the minimum number of unsued register across cores
-        """
-        unused_reg_per_core: list[int] = []
+        """Keep the per-hart selection count for modes without address regs."""
         all_regs = set(list(IntReg)[1 : MAX_NUM_PICKABLE_INTREGS + 1])
+        unused_per_core = [
+            len(all_regs - set(core.intregpickstate.pickable_intregs))
+            for core in self.corestates.values()
+        ]
+        return min(num_store_locs, min(unused_per_core))
+
+    def get_common_unused_addr_regs(self) -> list[IntReg]:
+        """Only globally free registers can use the shared init data block."""
+        unused = set(list(IntReg)[1 : MAX_NUM_PICKABLE_INTREGS + 1])
         for core in self.corestates.values():
-            used_regs = set(core.intregpickstate.pickable_intregs)
-            unused_regs = all_regs - used_regs
-            unused_reg_per_core.append(len(unused_regs))
-            assert len(unused_regs) != 0
-        num_unused_regs = min(unused_reg_per_core)
-        # Either there are enough regs for 1 per addr, or we use offsets
-        return min(num_store_locs, num_unused_regs)
+            unused.difference_update(core.intregpickstate.pickable_intregs)
+        return sorted(unused, key=lambda reg: reg.value)
 
     def init_store_locations(self, prng: Random):
         """Initialize the addresses and assign the addr/reg dictionary to corestates."""
@@ -591,7 +601,13 @@ class TestCaseGenerator:
             for addr, (reg, offset) in core.addr_reg_pairs.items():
                 if offset != 0:
                     continue
+                previous = all_reg_to_addr.get(reg)
+                if previous is not None and previous != addr:
+                    raise ValueError(f"address register {reg} has different bases across harts")
                 all_reg_to_addr[reg] = addr
+
+        if set(all_reg_to_addr) != set(self.fuzzerstate.all_addr_regs):
+            raise ValueError("address register initialization is incomplete")
 
         # Set initial register data
         for idx, reg in enumerate(self.fuzzerstate.all_addr_regs):
